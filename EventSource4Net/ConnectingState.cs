@@ -37,7 +37,7 @@ namespace EventSource4Net
                     IServerResponse response = tsk.Result;
                     if (response.StatusCode == HttpStatusCode.OK)
                     {
-                        return new ConnectedState(response, mWebRequesterFactory);
+                        return new ConnectedState(requester, response, mWebRequesterFactory);
                     }
                     else
                     {

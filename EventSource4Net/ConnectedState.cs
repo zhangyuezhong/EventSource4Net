@@ -19,8 +19,11 @@ namespace EventSource4Net
         private IServerResponse mResponse;
         public EventSourceState State { get { return EventSourceState.OPEN; } }
 
-        public ConnectedState(IServerResponse response, IWebRequesterFactory webRequesterFactory)
+        private IWebRequester mRequester;
+
+        public ConnectedState(IWebRequester requester, IServerResponse response, IWebRequesterFactory webRequesterFactory)
         {
+            mRequester = requester;
             mResponse = response;
             mWebRequesterFactory = webRequesterFactory;
         }
@@ -47,7 +50,7 @@ namespace EventSource4Net
                         {
                             _logger.Trace(ex, "ConnectedState.Run");
                         }
-                        if (!cancelToken.IsCancellationRequested)
+                        if (!cancelToken.IsCancellationRequested && !taskRead.IsFaulted)
                         {
                             int bytesRead = taskRead.Result;
                             if (bytesRead > 0) // stream has not reached the end yet
@@ -125,11 +128,19 @@ namespace EventSource4Net
                                 _logger.Trace("No bytes read. End of stream.");
                             }
                         }
+                        else
+                        {
+                            if (taskRead.IsFaulted)
+                            {
+                                _logger.Error(taskRead.Exception.StackTrace);
+                            }
+                        }
 
                         //stream.Dispose()
                         //stream.Close();
                         //mResponse.Close();
                         //mResponse.Dispose();
+                        (mRequester as WebRequester).WebRequest.Abort();
                         return new DisconnectedState(mResponse.ResponseUri, mWebRequesterFactory);
                     }
                 }
